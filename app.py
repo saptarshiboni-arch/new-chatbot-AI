@@ -20,32 +20,28 @@ def home():
 
 @app.route("/chat", methods=["POST"])
 def chat():
+    import traceback
     try:
         data = request.get_json(force=True)
-        print("Incoming data:", data)
+        print("Incoming:", data)
 
         user_msg = data.get("message", "")
-        print("User message:", user_msg)
 
         reply = get_response(user_msg)
         print("Reply:", reply)
 
-        # Save to history
-        chat_history.append({
-            "user": user_msg,
-            "bot": str(reply)
+        return jsonify({
+            "response": str(reply) if reply else "No response"
         })
-
-        return jsonify({"response": str(reply)})
 
     except Exception as e:
         error = traceback.format_exc()
-        print("ERROR OCCURRED:\n", error)
+        print("ERROR:", error)
 
         return jsonify({
-            "response": "Backend Error:\n" + error
+            "response": "Backend error",
+            "error": error
         })
-
 
 # History page
 @app.route("/history")
