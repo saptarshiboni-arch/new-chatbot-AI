@@ -37,7 +37,7 @@ def get_response(user_query):
             api_key=GROQ_API_KEY,
         )
 
-        # ✅ CUSTOM PROMPT (FIXED POSITION)
+        # Prompt
         CUSTOM_PROMPT_TEMPLATE = """
 You are a professional medical assistant.
 
@@ -55,23 +55,30 @@ Question:
             input_variables=["context", "question"]
         )
 
-        # ✅ Chains
         combine_docs_chain = create_stuff_documents_chain(
             llm,
             custom_prompt
         )
 
-
+        # ✅ Load vectorstore
         vectorstore = get_vectorstore()
 
+        if vectorstore is None:
+            return "Vectorstore not found"
+
+        # RAG chain
         rag_chain = create_retrieval_chain(
-           vectorstore.as_retriever(search_kwargs={'k': 3}),
-           combine_docs_chain
+            vectorstore.as_retriever(search_kwargs={'k': 3}),
+            combine_docs_chain
         )
 
         response = rag_chain.invoke({'input': user_query})
 
-        return response["answer"]
+        if response and "answer" in response:
+            return str(response["answer"])
+        else:
+            return "No answer generated"
 
     except Exception as e:
-        return str(e)
+        import traceback
+        return traceback.format_exc()
