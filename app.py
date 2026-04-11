@@ -28,10 +28,15 @@ def chat():
         user_msg = data.get("message", "")
 
         reply = get_response(user_msg)
-        print("Reply:", reply)
+
+        print("RAW REPLY:", reply)
+
+        # ✅ FORCE SAFE RESPONSE
+        if not reply:
+            reply = "EMPTY RESPONSE FROM BACKEND"
 
         return jsonify({
-            "response": str(reply) if reply else "No response"
+            "response": str(reply)
         })
 
     except Exception as e:
@@ -39,7 +44,7 @@ def chat():
         print("ERROR:", error)
 
         return jsonify({
-            "response": "Backend error",
+            "response": "BACKEND ERROR",
             "error": error
         })
 
