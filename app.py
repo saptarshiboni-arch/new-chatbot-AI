@@ -1,72 +1,93 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 from medibot import get_response
-import traceback
+
+import json
 import os
 
-print("App file started")
-
 app = Flask(__name__)
-# Updated CORS to be more flexible for the live environment
 CORS(app)
 
-# Store chat history
-chat_history = []
+# File to store history
+HISTORY_FILE = "history.json"
+
+
+# ✅ Save chat to file
+def save_chat(user, bot):
+    history = []
+
+    # Load existing history
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, "r") as f:
+            try:
+                history = json.load(f)
+            except:
+                history = []
+
+    # Add new chat
+    history.append({
+        "user": user,
+        "bot": bot
+    })
+
+    # Save back
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(history, f, indent=4)
+
 
 @app.route("/")
 def home():
     return render_template("index.html")
 
+
 @app.route("/chat", methods=["POST"])
 def chat():
+    import traceback
     try:
-        # force=True ensures it tries to parse JSON even if content-type header is missing
         data = request.get_json(force=True)
-        print("Incoming Data:", data)
 
         user_msg = data.get("message", "")
-        
-        if not user_msg:
-            return jsonify({"response": "I didn't receive a message. Please try again."})
 
-        # Calling your medibot logic
+        print("Request Received")
+
         reply = get_response(user_msg)
-        print("RAW REPLY FROM MEDIBOT:", reply)
+
+        print("Reply ready")
 
         if not reply:
-            reply = "The assistant is currently unavailable. Please try again later."
+            reply = "Empty response from backend"
 
-        # Add to history (optional logic improvement)
-        chat_history.append({"user": user_msg, "bot": reply})
+        # ✅ SAVE CHAT HERE
+        save_chat(user_msg, reply)
 
         return jsonify({
             "response": str(reply)
         })
 
     except Exception as e:
-        error_details = traceback.format_exc()
-        print("CRITICAL ERROR IN /CHAT ROUTE:")
-        print(error_details)
+        error = traceback.format_exc()
+        print(error)
 
         return jsonify({
-            "response": "Sorry, the server encountered an error.",
-            "debug_info": str(e) # This helps you see the error in the UI
+            "response": "Backend error",
+            "error": error
         })
+
 
 @app.route("/history")
 def history():
-    return render_template("history.html", chats=chat_history)
+    # ✅ Load history from file
+    if os.path.exists(HISTORY_FILE):
+        with open(HISTORY_FILE, "r") as f:
+            try:
+                data = json.load(f)
+            except:
+                data = []
+    else:
+        data = []
 
-@app.route("/clear_history")
-def clear_history():
-    global chat_history
-    chat_history = []
-    return "History cleared! <a href='/history'>Go back</a>"
+    return render_template("history.html", chats=data)
 
-# --- UPDATED FOR RENDER ---
+
 if __name__ == "__main__":
-    # This line is the most important! 
-    # It tells Flask to listen to Render's dynamic port.
-    port = int(os.environ.get("PORT", 10000))
-    print(f"Server is starting on port {port}")
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)

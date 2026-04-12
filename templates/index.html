@@ -175,10 +175,10 @@
 
     <script>
       async function sendMessage() {
-        let inputField = document.getElementById("user-input");
-        let message = inputField.value.trim();
+        let input = document.getElementById("user-input");
+        let message = input.value.trim();
 
-        if (message === "") return;
+        if (!message) return;
 
         let chatBox = document.getElementById("chat-box");
 
@@ -188,17 +188,16 @@
         userMsg.innerText = message;
         chatBox.appendChild(userMsg);
 
-        inputField.value = "";
-        chatBox.scrollTop = chatBox.scrollHeight;
+        input.value = "";
 
-        // Bot message placeholder
+        // Bot placeholder
         let botMsg = document.createElement("div");
         botMsg.classList.add("message", "bot-message");
         botMsg.innerText = "Typing...";
         chatBox.appendChild(botMsg);
 
         try {
-          const response = await fetch("/chat", {
+          const res = await fetch("http://127.0.0.1:5000/chat", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -206,27 +205,44 @@
             body: JSON.stringify({ message: message }),
           });
 
-          // 1. Check if the HTTP status is okay (200)
-          if (!response.ok) {
-            const errorText = await response.text();
-            botMsg.innerText = "Server Error: " + response.status;
-            console.error("Server side error:", errorText);
+          // ✅ Check server status
+          if (!res.ok) {
+            const errorText = await res.text();
+            console.error("Server error:", errorText);
+            botMsg.innerText = "Server error (" + res.status + ")";
             return;
           }
 
-          // 2. Parse JSON directly
-          const data = await response.json();
+          // ✅ Read response safely
+          const text = await res.text();
 
-          // 3. Display the response
+          let data;
+          try {
+            data = JSON.parse(text);
+          } catch (e) {
+            console.error("Invalid JSON:", text);
+            botMsg.innerText = "Invalid response from server";
+            return;
+          }
+
+          // ✅ Show response
           botMsg.innerText = data.response || "No response from bot";
         } catch (error) {
           console.error("Fetch error:", error);
-          // This will now show you the ACTUAL error in the chat box
-          botMsg.innerText = "Connection Error: Check console for details.";
+          botMsg.innerText = "Connection error";
         }
 
         chatBox.scrollTop = chatBox.scrollHeight;
       }
+
+      // ✅ BONUS: Press Enter to send
+      document
+        .getElementById("user-input")
+        .addEventListener("keypress", function (e) {
+          if (e.key === "Enter") {
+            sendMessage();
+          }
+        });
     </script>
   </body>
 </html>
