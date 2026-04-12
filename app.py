@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect, url_for
 from flask_cors import CORS
 from medibot import get_response
 
 import json
 import os
+
 
 app = Flask(__name__)
 CORS(app)
@@ -88,16 +89,19 @@ def history():
 
     return render_template("history.html", chats=data)
 
+
+
+
 @app.route("/clear_history")
 def clear_history():
-    import os
-
     try:
         if os.path.exists(HISTORY_FILE):
             os.remove(HISTORY_FILE)
-        return "History cleared successfully"
     except Exception as e:
         return str(e)
+
+    # ✅ redirect back to home (important)
+    return redirect(url_for("home"))
 
 
 if __name__ == "__main__":
