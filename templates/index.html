@@ -231,7 +231,7 @@
         chatBox.scrollTop = chatBox.scrollHeight;
 
         try {
-          const res = await fetch("/chat", {
+          const res = await fetch(window.location.origin + "/chat", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
